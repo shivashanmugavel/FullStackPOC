@@ -1,0 +1,102 @@
+package org.ssv;
+
+
+
+import com.kolban.ibpm.kolbantk.Rest.RestException;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Set;
+import org.apache.commons.codec.binary.Base64;
+
+public class RestClient {
+	
+	
+	
+	public static boolean debug = true;
+	public static void main( String args[]) throws Exception
+	{
+		doRest("DELETE","Http://localhost:8080/customer" , "Delete JSON Testing", null, null, null);;
+	}
+	
+
+	public static String doRest(String command, String urlString, String content, HashMap<String, String> headerMap,
+			String userid, String password) throws Exception {
+		
+		
+		
+		
+		
+		if (debug) {
+			System.out.println(">> doRest: command=" + command + ", urlString=" + urlString + ", content=" + content
+					+ ", userid=" + userid + ", password=" + password);
+		}
+
+//		if (!command.equals("GET") && !command.equals("POST") && !command.equals("PUT")) {
+//			throw new RestException("Unsupported command: " + command + ".  Supported commands are GET, POST, PUT");
+//		} else {
+			try {
+				URL url = new URL("http://localhost:8080/customer");
+				HttpURLConnection httpUrlConnection = (HttpURLConnection) url.openConnection();
+				httpUrlConnection.setRequestMethod(command);
+				
+				httpUrlConnection.setRequestProperty("Accept", "application/json");
+				httpUrlConnection.setRequestProperty("Content-Type", "application/json");
+				
+				
+				if (headerMap != null) {
+					Set<String> keySet = headerMap.keySet();
+					Iterator it = keySet.iterator();
+
+					while (it.hasNext()) {
+						String key = (String) it.next();
+						httpUrlConnection.addRequestProperty(key, (String) headerMap.get(key));
+					}
+				}
+
+				if (userid != null && !userid.isEmpty()) {
+					String authorization = "Basic "
+							+ new String(Base64.encodeBase64((new String(userid + ":" + password)).getBytes()));
+					httpUrlConnection.setRequestProperty("Authorization", authorization);
+				}
+
+				if (content != null && (command.equals("POST") || command.equals("DELETE"))) {
+					httpUrlConnection.setDoOutput(true);
+					OutputStreamWriter wr = new OutputStreamWriter(httpUrlConnection.getOutputStream());
+					wr.write(content);
+					wr.flush();
+					wr.close();
+				}
+
+				InputStreamReader inReader = new InputStreamReader(httpUrlConnection.getInputStream());
+				BufferedReader bufferedReader = new BufferedReader(inReader);
+				StringBuffer sb = new StringBuffer();
+
+				for (String line = bufferedReader.readLine(); line != null; line = bufferedReader.readLine()) {
+					sb.append(line);
+				}
+
+				bufferedReader.close();
+				
+				httpUrlConnection.disconnect();
+				if (debug) {
+					System.out.println("doRest: result is " + sb.toString());
+				}
+
+				return sb.toString();
+				
+				//below 2 be removed
+				//httpUrlConnection.getResponseCode();
+				//return "sucess";
+				
+				
+			} catch (Exception var12) {
+				throw var12;
+			}
+		}
+	}
+
